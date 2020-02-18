@@ -8,6 +8,8 @@
  *
  * Written March 1993 by Branko Lankester
  * Modified June 1993 by Colin Plumb for altered md5.c.
+ * Modified February 2020 by Christopher Gelatt to add an option to check
+ *          digests on the fly as command line parameters.
  */
 #include <stdio.h>
 #include <string.h>
@@ -33,6 +35,8 @@ extern int optind;
 
 int mdfile(FILE *fp, unsigned char *digest);
 int do_check(FILE *chkf);
+int get_raw_digest(char *in_digest, unsigned char *out_digest);
+int get_char_digest(unsigned char *in_digest, char *out_digest);
 
 char *progname;
 int verbose = 0;
@@ -41,23 +45,19 @@ int bin_mode = 0;
 void
 usage(void)
 {
-	fprintf(stderr, "usage: md5sum [-bv] [-c [file]] | [file...]\n");
+	fprintf(stderr, "usage: md5sum [-bv] [-cd [file|digest]] | [file...]\n");
 	fprintf(stderr, "Generates or checks MD5 Message Digests\n");
 	fprintf(stderr, "    -c  check message digests (default is generate)\n");
+	fprintf(stderr, "    -d  validate specified message digest against file\n");
 	fprintf(stderr, "    -v  verbose, print file names when checking\n");
 	fprintf(stderr, "    -b  read files in binary mode\n");
 	fprintf(stderr, "The input for -c should be the list of message digests and file names\n");
 	fprintf(stderr, "that is printed on stdout by this program when it generates digests.\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "The input for -d should be an MD5 digest to validate against the file\n");
+	fprintf(stderr, "specified at the end of the command.  -d should not be used with -c.\n");
+	fprintf(stderr, "Unlike other modes, -d does not accept input from stdin.\n");
 	exit(2);
-}
-
-void
-print_digest(unsigned char *p)
-{
-	int i;
-
-	for (i = 0; i < 16; ++i)
-		printf("%02x", *p++);
 }
 
 int
@@ -65,13 +65,19 @@ main(int argc, char **argv)
 {
 	int opt, rc = 0;
 	int check = 0;
+	int validate_digest = 0;
+	int check_result = 0;
 	FILE *fp;
+	char *input_digest;
+	char char_digest[33];
 	unsigned char digest[16];
+	unsigned char check_digest[16];
 
 	progname = *argv;
-	while ((opt = pgp_getopt(argc, argv, "cbvp:h")) != EOF) {
+	while ((opt = pgp_getopt(argc, argv, "cd:bvh")) != EOF) {
 		switch (opt) {
 			case 'c': check = 1; break;
+			case 'd': validate_digest = 1; input_digest = optarg; break;
 			case 'v': verbose = 1; break;
 			case 'b': bin_mode = 1; break;
 			default: usage();
@@ -90,14 +96,21 @@ main(int argc, char **argv)
 			default: usage();
 		}
 		exit(do_check(fp));
+	} else if (validate_digest) {
+		if (argc == 0) {
+			usage();
+		}
 	}
 	if (argc == 0) {
 		if (mdfile(stdin, digest)) {
 			fprintf(stderr, "%s: read error on stdin\n", progname);
 			exit(2);
 		}
-		print_digest(digest);
-		printf("\n");
+		if (get_char_digest(digest, char_digest)) {
+			fprintf(stderr, "%s: error generating digest\n", progname);
+			exit(2);
+		}
+		fprintf(stderr, "%s\n", char_digest);
 		exit(0);
 	}
 	for ( ; argc > 0; --argc, ++argv) {
@@ -114,13 +127,88 @@ main(int argc, char **argv)
 			fprintf(stderr, "%s: error reading %s\n", progname, *argv);
 			rc = 2;
 		} else {
-			print_digest(digest);
-			printf(" %c%s\n", bin_mode ? '*' : ' ', *argv);
+			if (get_char_digest(digest, char_digest)) {
+				fprintf(stderr, "%s: error generating digest\n", progname);
+				rc = 2;
+			} else {
+				if (!validate_digest) {
+					printf("%s %c%s\n", char_digest, bin_mode ? '*' : ' ', *argv);
+				} else {
+					if (get_raw_digest(input_digest, check_digest)) {
+						fprintf(stderr, "%s: error parsing digest %s\n", progname, input_digest);
+						rc = 2;
+					} else {
+						check_result = memcmp(check_digest, digest, 16);
+						printf("input: %c%s\n", bin_mode ? '*' : ' ', input_digest);
+						printf("file:  %c%s\n", bin_mode ? '*' : ' ', char_digest);
+						if (check_result == 0) {
+							printf("digests match.\n");
+						} else {
+							printf("digests do not match.\n");
+							rc = 1;
+						}
+					}
+				}
+			}
 		}
 		fclose(fp);
 	}
 	exit(rc);
     return 0;
+}
+
+int
+hex_digit(int c)
+{
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	if (c >= 'a' && c <= 'f')
+		return c - 'a' + 10;
+	return -1;
+}
+
+int
+char_digit(int d)
+{
+	if (d >= 0 && d <= 9)
+		return d + '0';
+	if (d >= 10 && d <= 15)
+		return d + 'a' - 10;
+	return -1;
+}
+
+int
+get_raw_digest(char *in_digest, unsigned char *out_digest)
+{
+	int i, d1, d2;
+
+	for (i = 0; i < 16; ++i) {
+		if ((d1 = hex_digit(*in_digest++)) == -1)
+			return -1;
+		if ((d2 = hex_digit(*in_digest++)) == -1)
+			return -1;
+		*out_digest++ = (d1 << 4) + d2;
+	}
+	return 0;
+}
+
+int
+get_char_digest(unsigned char *in_digest, char *out_digest)
+{
+	int i, d1, d2;
+
+	for (i = 0; i < 16; ++i) {
+		d1 = (in_digest[i] & 0xf0) >> 4;
+		if ((d1 = char_digit(d1)) == -1)
+			return -1;
+		d2 = in_digest[i] & 0x0f;
+		if ((d2 = char_digit(d2)) == -1)
+			return -1;
+		out_digest[2*i] = d1;
+		out_digest[(2*i)+1] = d2;
+	}
+	out_digest[32] = 0;
+	return 0;
 }
 
 int
@@ -137,16 +225,6 @@ mdfile(FILE *fp, unsigned char *digest)
 	if (ferror(fp))
 		return -1;
 	return 0;
-}
-
-int
-hex_digit(int c)
-{
-	if (c >= '0' && c <= '9')
-		return c - '0';
-	if (c >= 'a' && c <= 'f')
-		return c - 'a' + 10;
-	return -1;
 }
 
 int

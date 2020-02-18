@@ -1,5 +1,5 @@
 -----BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA1
+Hash: SHA256
 
  MD5SUM.TXT -- Documentation for MD5SUM.EXE
 
@@ -122,13 +122,24 @@ Hash: SHA1
  MD5SUM -cv MD5SUM.TXT
 
  This causes MD5SUM to check the following files:
-ffbfbcc238f518b079dc8e00452c0ce1 *MD5SUM.EXE
-dfcc28b2f970bb951d8385499918ead0 *MD5SUM.C
+00ee870f9fb9ac113c1b83c8762b11ef *MD5SUM.EXE
+f5f6067335b2426321cb2cfc7c2fcd6f *MD5SUM.C
 7a4f0e5a641979cfba2f5d560f56923f *MD5.H
 d5e3d664782962202f9578dd8b78967e *MD5.C
 363c7535d41804f1b13ed23e818981b9 *GETOPT.H
 8384f9a7271a24e35f9df5400125354d *GETOPT.C
 2e729f22f818e524c258cbda602b0eb1 *FILE_ID.DIZ
+
+
+ CHECKING FILES AGAINST ARBITRARY FINGEPRINTS
+
+ To check a file against a specific fingerprint:
+
+ MD5SUM -d 00ee870f9fb9ac113c1b83c8762b11ef MD5SUM.EXE
+
+ This checks MD5SUM.EXE against the fingerprint passed to the -d
+ parameter.  All fingerprints are 32-character hexidecimal
+ numbers, and must use lowercase letters for a through f.
 
 
  DETECTING MODIFICATION OR FORGERY OF FINGERPRINT FILES
@@ -147,6 +158,7 @@ d5e3d664782962202f9578dd8b78967e *MD5.C
 
  SOURCE CODE
 
+ Comments from the original file:
  The source code I used to compile MD5SUM.EXE is available in the
  distribution archive for this file
  (http://cryptography.org/tsu/hash). I did some minor edits to
@@ -167,6 +179,15 @@ d5e3d664782962202f9578dd8b78967e *MD5.C
 
  bcc -mh -O2 md5sum.c md5.c getopt.c
  pklite -r md5sum.exe
+
+ Updated comments:
+ The source for this version of the program is available at:
+ https://github.com/Kreeblah/md5sum
+
+ I left the original functionality intact, so it should behave
+ identically to the prior release, plus the -d option.  The
+ executable was compiled with OpenWatcom 2.0, build 2017-11-01,
+ on a Windows 95 OSR2 host.
 
 
  LEGAL NOTICES AND CREDITS
@@ -200,10 +221,18 @@ d5e3d664782962202f9578dd8b78967e *MD5.C
 
 
 -----BEGIN PGP SIGNATURE-----
-Version: PGP 6.5.2
-Comment: http://ebible.org/mpj
 
-iQA/AwUBOZgNwESP4McX10e7EQJGCQCg9EEW2a5x5UokNCL+48FrebwhK28An17l
-V0J1Zgb3gBja4a0zaCzUceNa
-=Hqvb
+iQIzBAEBCAAdFiEEqLFFpUYyj7Tn+K8BYHQje/Gu7fsFAl5LofkACgkQYHQje/Gu
+7fsJcA//SkBgQshJUjUM0u5GKQtMHxsf87ejCHYC4cdv3Ou5bjxUKtPUZvjee41q
+pDMRR5sQBA9IJsjmdEaEg11s3i70z+TKAUcrJjZqNMZoBZPp9lHuwi3X38/3IhpY
+X4OHdMQsWEm1ikpGZ+TiTCFSdOEDfyYOHcriTJclRtPF8h5MylhitO9GNHfIT8QE
++C2w1oMH9uxqHy7iWVujpaxS79xVSU9xGv1OxfdAQCOevs7+yHyLeuDprTHg2tGU
+8xVdgeeRwkt0iEPrQ5E3V7s86tM7WkDconzj0mwh8lbg4XqyNwqnNCHbgSAkW/+E
+qIKndQkfNAmA/ITPjOfVTEt8tSxDo/Iqo2lJEXp1ujG08/qLn9tVzxJYqUB9QtTN
+qqaMrDs4TCjDNp1v+kKNvPJmWJaVAUTGXO1uNreKZ9FYDzrYuKYKaEMMfDEcwXq3
+FUKSrQe87jkfLsEFJKgPKh9XZOoKMoRfIrCp5KAqE9eFzRvuNt+eFm5CMV5HXQhx
+FbfMosmqoAJIsLX8ze2rXnwQaXXHa3LGabIW3U6dFmQZ0iXf0gj9+0X2licBNHuH
+Dj+Db5n164ve8VOwU0gHsWPSq7yO0yDZnrDu0ECTyXamCTApAkUqebEFDfzR8xgK
+TN4tBvn4c9mML/JCWJ7Rp8roQg4xIJsp+ZZs56V0RJtfIwYC3dA=
+=Eq/1
 -----END PGP SIGNATURE-----
